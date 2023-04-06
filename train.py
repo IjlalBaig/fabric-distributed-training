@@ -1,4 +1,5 @@
 import os
+import argparse
 
 import numpy as np
 
@@ -12,6 +13,22 @@ import torchvision.transforms as transforms
 from model import EncoderDecoder
 
 device = 'cuda'
+
+# init argparse
+parser = argparse.ArgumentParser(
+    description='Pytorch DDP',
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter
+)
+
+parser.add_argument(
+    '--lr',
+    type=float, 
+    help='learning rate',
+    required=False,
+    default=0.001,
+)
+
+args = parser.parse_args()
 
 # check if ddp run
 ddp = int(os.environ.get('RANK', -1)) != -1
@@ -41,7 +58,9 @@ model.to(device)
 
 # init loss function and optimizer
 criterion = torch.nn.MSELoss()
-optimizer = optim.SGD(model.parameters(), lr=0.001)
+
+learning_rate = args.lr
+optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
 # wrap model in DDP
 if ddp:
