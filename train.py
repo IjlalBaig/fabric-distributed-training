@@ -67,7 +67,7 @@ if ddp:
     model = DistributedDataParallel(model, device_ids=[local_rank])
 
 # start training
-epochs = 100
+epochs = 1000
 for e in range(epochs):
     # random input tensor
     x = transform(torch.randn(
