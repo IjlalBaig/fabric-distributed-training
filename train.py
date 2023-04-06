@@ -86,7 +86,7 @@ for e in range(epochs):
 
     # log loss if master_process
     if master_process:
-        print(f"Epoch: {e+1} | Loss: {loss:.4f}")
+        print(f"Epoch={e+1}; Loss={loss:.4f};")
 
 # ddp cleanup
 if ddp:
