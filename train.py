@@ -4,6 +4,7 @@ import argparse
 import numpy as np
 
 import torch
+import torch.nn as nn
 import torch.optim as optim
 from torch.nn.parallel import DistributedDataParallel
 from torch.distributed import init_process_group, destroy_process_group
@@ -65,6 +66,7 @@ optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 # wrap model in DDP
 if ddp:
     model = DistributedDataParallel(model, device_ids=[local_rank])
+    model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
 # start training
 epochs = 1000
