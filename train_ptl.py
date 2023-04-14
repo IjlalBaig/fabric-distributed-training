@@ -21,5 +21,5 @@ if __name__ == "__main__":
     model = GANModel(z_dim=64, hidden_dim=128, im_dim=784, lr=1e-5)
 
     # training
-    trainer = pl.Trainer(num_nodes=1, devices=[1, 2, 3], max_epochs=1000, )
+    trainer = pl.Trainer(num_nodes=1, devices=[1, 2, 3, 4], max_epochs=1000, )
     trainer.fit(model, train_loader)
