@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+
 class Generator(nn.Module):
     def __init__(self, z_dim=10, hidden_dim=128, im_dim=784):
         super(Generator, self).__init__()

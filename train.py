@@ -47,8 +47,9 @@ else:
 
 # init params
 z_dim = 64
-batch_size=6
+batch_size = 6
 epochs = 200
+
 
 # loading model to device
 gen = Generator(z_dim).to(device)
