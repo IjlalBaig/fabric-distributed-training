@@ -161,3 +161,4 @@ cython_debug/
 
 # lightning logs
 lightning_logs
+data
