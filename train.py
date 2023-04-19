@@ -6,8 +6,9 @@ torch.manual_seed(0)
 import lightning as L
 from torchvision.datasets import CIFAR10
 import torchvision.transforms as T
-
+import traceback
 if __name__ == "__main__":
+
     BATCH_SIZE = 64
     NUM_WORKERS = 8
     NUM_EPOCHS = 1000
@@ -25,7 +26,7 @@ if __name__ == "__main__":
     train_loader = fabric.setup_dataloaders(train_loader)
 
     # model
-    model = WGAN_GP(fabric, lr=1e-5, noise_dim=100, channel_multiplier=12)
+    model = WGAN_GP(fabric, lr=1e-5, noise_dim=100, channel_multiplier=1, additional_convs=100)
 
     # Training loop
     for epoch in range(NUM_EPOCHS):

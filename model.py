@@ -2,15 +2,30 @@ import torch
 import torch.nn as nn
 import lightning as L
 
+class Conv2DLayers(nn.Module):
+    def __init__(self, channels: int, layers: int = 1):
+        super().__init__()
+        for i in range(layers):
+            self.add_module(f"conv{i}", nn.Conv2d(channels, channels, 3, 1, 1))
+            self.add_module(f"norm{i}", nn.BatchNorm2d(channels))
+            self.add_module(f"act{i}", nn.ReLU())
+
+    def forward(self, x):
+        for layer in self.children():
+            x = layer(x)
+        return x
+
 
 class Generator(torch.nn.Module):
-    def __init__(self, channel_multiplier=1):
+    def __init__(self, channel_multiplier=1, additional_convs=1):
         super().__init__()
 
         self.main = nn.Sequential(
             nn.ConvTranspose2d(100, 512 * channel_multiplier, 4, 1, 0, bias=False),
             nn.BatchNorm2d(512 * channel_multiplier),
             nn.ReLU(True),
+
+            Conv2DLayers(512 * channel_multiplier, additional_convs),
 
             nn.ConvTranspose2d(512 * channel_multiplier, 256 * channel_multiplier, 4, 2, 1, bias=False),
             nn.BatchNorm2d(256 * channel_multiplier),
@@ -30,12 +45,14 @@ class Generator(torch.nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self, channel_multiplier=1):
+    def __init__(self, channel_multiplier=1, additional_convs=1):
         super(Discriminator, self).__init__()
 
         self.main = nn.Sequential(
             nn.Conv2d(3, 64 * channel_multiplier, 4, 2, 1, bias=False),
             nn.LeakyReLU(0.2, True),
+
+            Conv2DLayers(64 * channel_multiplier, additional_convs),
 
             nn.Conv2d(64 * channel_multiplier, 128 * channel_multiplier, 4, 2, 1, bias=False),
             nn.InstanceNorm2d(128 * channel_multiplier, affine=True),
@@ -55,21 +72,22 @@ class Discriminator(nn.Module):
 
 
 class WGAN_GP(nn.Module):
-    def __init__(self, fabric: L.Fabric, lr: float = 1e-5, noise_dim: int = 100, channel_multiplier: int = 1):
+    def __init__(self, fabric: L.Fabric, lr: float = 1e-5, noise_dim: int = 100, channel_multiplier: int = 1, additional_convs: int =1):
         super().__init__()
         self.fabric = fabric
         self.lr = lr
         self.noise_dim = noise_dim
         self.channel_multiplier = channel_multiplier
+        self.additional_convs = additional_convs
 
         self.gen, self.critic = self.prepare_modules()
         self.optimizer_gen, self.optimizer_critic = self.prepare_optimizers()
 
     def prepare_modules(self):
-        gen = Generator(self.channel_multiplier)
+        gen = Generator(self.channel_multiplier, self.additional_convs)
         gen = self.fabric.setup_module(gen)
 
-        critic = Discriminator(self.channel_multiplier)
+        critic = Discriminator(self.channel_multiplier, self.additional_convs)
         critic = self.fabric.setup_module(critic)
         return gen, critic
 
@@ -119,7 +137,7 @@ class WGAN_GP(nn.Module):
         # gp = self.gradient_penalty(real_images, fake_images)
 
         # Combine losses
-        loss = err_critic_real + err_critic_fake # + gp * 10
+        loss = err_critic_real + err_critic_fake #+ gp * 10
 
         # Backward and optimize
         fabric.backward(loss)
