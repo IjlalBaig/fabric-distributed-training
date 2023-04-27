@@ -1,8 +1,27 @@
 import sagemaker
 from sagemaker.pytorch import PyTorch
 
+smp_options = {
+    "enabled": True,
+    "parameters": {                        # Required
+        "pipeline_parallel_degree": 2,     # Required
+        "microbatches": 4,
+        "placement_strategy": "spread",
+        "pipeline": "interleaved",
+        "optimize": "speed",
+        "ddp": True,
+    }
+}
 
-model_parallel_config = {"pytorchfsdp":  {"enabled": True}}
+mpi_options = {
+    "enabled" : True,                      # Required
+    "processes_per_host" : 8,              # Required
+    # "custom_mpi_options" : "--mca btl_vader_single_copy_mechanism none"
+}
+model_parallel_config = {
+        "smdistributed": {"modelparallel": smp_options},
+        "mpi": mpi_options
+    },
 data_parallel_config = {"pytorchddp":  {"enabled": True}}
 
 estimator = PyTorch(
