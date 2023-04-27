@@ -3,7 +3,7 @@ from sagemaker.pytorch import PyTorch
 
 
 model_parallel_config = None
-data_parallel_config = {"smdistributed": {"dataparallel": {"enabled": True}}}
+data_parallel_config = {"smdistributed": {"dataparallel": {"enabled": False}}}
 
 estimator = PyTorch(
     base_job_name="lightening-multinode-test",
@@ -11,7 +11,7 @@ estimator = PyTorch(
     role=sagemaker.get_execution_role(),
     sagemaker_session=sagemaker.Session(default_bucket="ml-sagemaker-testing"),
     instance_count=2,
-    instance_type="ml.g4dn.xlarge",
+    instance_type="ml.g4dn.12xlarge",
     output_path="s3://ml-sagemaker-testing/multi-node-testing",
 
     source_dir="./",

@@ -14,8 +14,8 @@ import os
 env = None
 process_group_backend = None
 try:
+    print(f"world_size: ({int(os.environ['WORLD_SIZE'])}), rank: ({int(os.environ['RANK'])})")
     import smdistributed.dataparallel.torch.torch_smddp
-
     from lightning.fabric.plugins.environments import LightningEnvironment
     env = LightningEnvironment()
     env.world_size = lambda: int(os.environ["WORLD_SIZE"])
