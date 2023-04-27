@@ -4,6 +4,7 @@ from sagemaker.pytorch import PyTorch
 smp_options = {
     "enabled": True,
     "parameters": {                        # Required
+        "partitions": 2,
         "pipeline_parallel_degree": 2,     # Required
         "microbatches": 4,
         "placement_strategy": "spread",
@@ -14,14 +15,16 @@ smp_options = {
 }
 
 mpi_options = {
-    "enabled" : True,                      # Required
-    "processes_per_host" : 8,              # Required
+    "enabled": True,                      # Required
+    "processes_per_host": 8,              # Required
     # "custom_mpi_options" : "--mca btl_vader_single_copy_mechanism none"
 }
 model_parallel_config = {
         "smdistributed": {"modelparallel": smp_options},
         "mpi": mpi_options
     },
+
+# todo: use config for smdistributed and mpi for ddp case
 data_parallel_config = {"pytorchddp":  {"enabled": True}}
 
 estimator = PyTorch(
