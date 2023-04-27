@@ -3,7 +3,7 @@ from sagemaker.pytorch import PyTorch
 
 
 model_parallel_config = None
-data_parallel_config = {"smdistributed": {"dataparallel": {"enabled": False}}}
+data_parallel_config = {"pytorchddp":  {"enabled": False}}
 
 estimator = PyTorch(
     base_job_name="lightening-multinode-test",

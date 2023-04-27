@@ -20,7 +20,7 @@ try:
     env = LightningEnvironment()
     env.world_size = lambda: int(os.environ["WORLD_SIZE"])
     env.global_rank = lambda: int(os.environ["RANK"])
-    process_group_backend = "smddp"
+    process_group_backend = "nccl"
 except ModuleNotFoundError as e:
     warnings.warn(e.msg)
 
