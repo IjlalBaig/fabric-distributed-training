@@ -1,46 +1,24 @@
-from model import WGAN_GP
-import torch
-from lightning.fabric.strategies import FSDPStrategy, DDPStrategy
-from torch.utils.data import DataLoader
-torch.manual_seed(0)
-import lightning as L
-from torchvision.datasets import CIFAR10
-import torchvision.transforms as T
-import traceback
-if __name__ == "__main__":
+import sagemaker
+from sagemaker.pytorch import PyTorch
 
-    BATCH_SIZE = 64
-    NUM_WORKERS = 8
-    NUM_EPOCHS = 1000
-    NUM_CRITIC_STEPS = 1
 
-    # Prepare Distributed Training Strategy
-    strategy = FSDPStrategy()
-    # strategy = DDPStrategy(find_unused_parameters=True)
-    # strategy = "auto"
-    fabric = L.Fabric(strategy=strategy, devices=[0])
-    fabric.launch()
+model_parallel_config = None
+data_parallel_config = {"smdistributed": {"dataparallel": {"enabled": True}}}
 
-    train_set = CIFAR10(root='./data', train=True, download=True, transform=lambda x: T.ToTensor()(x))
-    train_loader = DataLoader(dataset=train_set, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS)
-    train_loader = fabric.setup_dataloaders(train_loader)
+estimator = PyTorch(
+    base_job_name="lightening-multinode-test",
+    image_uri="929329369485.dkr.ecr.us-west-2.amazonaws.com/ml-sagemaker-testing:normal_base_torch13_py39_0.1",
+    role=sagemaker.get_execution_role(),
+    sagemaker_session=sagemaker.Session(default_bucket="ml-sagemaker-testing"),
+    instance_count=2,
+    instance_type="ml.g4dn.xlarge",
+    output_path="s3://ml-sagemaker-testing/multi-node-testing",
 
-    # model
-    model = WGAN_GP(fabric, lr=1e-5, noise_dim=100, channel_multiplier=1, additional_convs=100)
+    source_dir="./",
+    entry_point="train_with_lightning_fabric.py",
 
-    # Training loop
-    for epoch in range(NUM_EPOCHS):
-        fabric.print("Epoch:", epoch)
+    # enabling DDP using MPI
+    distribution=data_parallel_config,
+)
 
-        losses_gen = dict(gen_loss=0.)
-        for i, batch in enumerate(train_loader):
-            real_images, _ = batch
-            n = real_images.size(0)
-            noise = torch.randn(n, 100, 1, 1, device=real_images.device)
-
-            losses_critic = model.critic_training_step(real_images, noise, fabric)
-            if (i + 1) % NUM_CRITIC_STEPS == 0:
-                losses_gen = model.generator_training_step(noise, fabric)
-
-            if i % 100 == 0:
-                fabric.print(f"losses: gen ({losses_gen['gen_loss']:.2f}), critic ({losses_critic['critic_loss']:.2f})")
+estimator.fit(wait=False)

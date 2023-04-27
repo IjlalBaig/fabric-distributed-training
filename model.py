@@ -2,13 +2,14 @@ import torch
 import torch.nn as nn
 import lightning as L
 
+
 class Conv2DLayers(nn.Module):
     def __init__(self, channels: int, layers: int = 1):
         super().__init__()
         for i in range(layers):
             self.add_module(f"conv{i}", nn.Conv2d(channels, channels, 3, 1, 1))
-            self.add_module(f"norm{i}", nn.BatchNorm2d(channels))
-            self.add_module(f"act{i}", nn.ReLU())
+            # self.add_module(f"norm{i}", nn.BatchNorm2d(channels))
+            self.add_module(f"act{i}", nn.ReLU(inplace=False))
 
     def forward(self, x):
         for layer in self.children():
@@ -85,17 +86,17 @@ class WGAN_GP(nn.Module):
 
     def prepare_modules(self):
         gen = Generator(self.channel_multiplier, self.additional_convs)
-        gen = self.fabric.setup_module(gen)
+        gen = self.fabric.strategy.setup_module(gen)
 
         critic = Discriminator(self.channel_multiplier, self.additional_convs)
         critic = self.fabric.setup_module(critic)
         return gen, critic
 
     def prepare_optimizers(self):
-        optimizer_g = torch.optim.Adam(self.gen.parameters(), lr=self.lr)
+        optimizer_g = torch.optim.SGD(self.gen.parameters(), lr=self.lr)
         optimizer_g = self.fabric.setup_optimizers(optimizer_g)
 
-        optimizer_c = torch.optim.Adam(self.critic.parameters(), lr=self.lr)
+        optimizer_c = torch.optim.SGD(self.critic.parameters(), lr=self.lr)
         optimizer_c = self.fabric.setup_optimizers(optimizer_c)
         return optimizer_g, optimizer_c
 
