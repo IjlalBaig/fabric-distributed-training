@@ -15,7 +15,6 @@ env = None
 process_group_backend = None
 try:
     print(f"world_size: ({int(os.environ['WORLD_SIZE'])}), rank: ({int(os.environ['RANK'])})")
-    import smdistributed.dataparallel.torch.torch_smddp
     from lightning.fabric.plugins.environments import LightningEnvironment
     env = LightningEnvironment()
     env.world_size = lambda: int(os.environ["WORLD_SIZE"])
@@ -92,18 +91,18 @@ if __name__ == "__main__":
     my_auto_wrap_policy = functools.partial(
         size_based_auto_wrap_policy, min_num_params=20000
     )
-    # fsdp_strategy = FSDPStrategy(
-    #     auto_wrap_policy=my_auto_wrap_policy,
-    #     cluster_environment=env,
-    #     process_group_backend=process_group_backend,
-    # )
+    fsdp_strategy = FSDPStrategy(
+        auto_wrap_policy=my_auto_wrap_policy,
+        cluster_environment=env,
+        process_group_backend=process_group_backend,
+    )
     ddp_strategy = DDPStrategy(
         cluster_environment=env,
         process_group_backend=process_group_backend,
     )
 #     strategy = "auto"
 
-    fabric = L.Fabric(strategy=ddp_strategy, num_nodes=2, devices="auto")
+    fabric = L.Fabric(strategy=fsdp_strategy, num_nodes=2, devices="auto")
     fabric.launch()
 
     # Prepare data

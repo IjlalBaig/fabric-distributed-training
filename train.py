@@ -2,8 +2,8 @@ import sagemaker
 from sagemaker.pytorch import PyTorch
 
 
-model_parallel_config = None
-data_parallel_config = {"pytorchddp":  {"enabled": False}}
+model_parallel_config = {"pytorchfsdp":  {"enabled": True}}
+data_parallel_config = {"pytorchddp":  {"enabled": True}}
 
 estimator = PyTorch(
     base_job_name="lightening-multinode-test",
@@ -18,7 +18,7 @@ estimator = PyTorch(
     entry_point="train_with_lightning_fabric.py",
 
     # enabling DDP using MPI
-    distribution=data_parallel_config,
+    distribution=model_parallel_config,
 )
 
 estimator.fit(wait=False)
