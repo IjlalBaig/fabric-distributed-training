@@ -1,95 +1,22 @@
-import os
-import argparse
+import sagemaker
+from sagemaker.pytorch import PyTorch
 
-import numpy as np
+data_parallel_config = {"pytorchddp":  {"enabled": True}}
+model_parallel_config = {"torch_distributed":  {"enabled": True}}
 
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.nn.parallel import DistributedDataParallel
-from torch.distributed import init_process_group, destroy_process_group
+estimator = PyTorch(
+    base_job_name="lightening-multinode-test",
+    image_uri="929329369485.dkr.ecr.us-west-2.amazonaws.com/ml-sagemaker-testing:normal_base_torch13_py39_0.1",
+    role=sagemaker.get_execution_role(),
+    sagemaker_session=sagemaker.Session(default_bucket="ml-sagemaker-testing"),
+    instance_count=2,
+    instance_type="ml.g4dn.12xlarge",
+    output_path="s3://ml-sagemaker-testing/multi-node-testing",
 
-import torchvision.transforms as transforms
+    source_dir="./",
+    entry_point="train_with_lightning_fabric.py",
 
-from model import EncoderDecoder
-
-device = 'cuda'
-
-# init argparse
-parser = argparse.ArgumentParser(
-    description='Pytorch DDP',
-    formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    distribution=model_parallel_config,
 )
 
-parser.add_argument(
-    '--lr',
-    type=float, 
-    help='learning rate',
-    required=False,
-    default=0.001,
-)
-
-args = parser.parse_args()
-
-# check if ddp run
-ddp = int(os.environ.get('RANK', -1)) != -1
-
-if ddp:
-    # ddp setup
-    init_process_group(backend='nccl')
-    global_rank = int(os.environ['RANK'])               # global rank
-    local_rank = int(os.environ['LOCAL_RANK'])          # local rank
-    device = f'cuda:{local_rank}'
-    master_process = global_rank == 0                   # this process will perform logging etc.
-    seed_offset = global_rank
-else:
-    # single process, single gpu run
-    master_process = True
-    seed_offset = 0
-
-# init data transform
-transform = transforms.Compose([
-    transforms.Resize(254), 
-    transforms.Normalize([0.5], [0.5]),
-])
-
-# loading model to device
-model = EncoderDecoder()
-model.to(device)
-
-# init loss function and optimizer
-criterion = torch.nn.MSELoss()
-
-learning_rate = args.lr
-optimizer = optim.SGD(model.parameters(), lr=learning_rate)
-
-# wrap model in DDP
-if ddp:
-    model = DistributedDataParallel(model, device_ids=[local_rank])
-    model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
-
-# start training
-epochs = 1000
-for e in range(epochs):
-    # random input tensor
-    x = transform(torch.randn(
-        1, 3, 284, 284,
-        requires_grad=True, 
-        device=device,
-    ))
-
-    # forward pass
-    y = model(x)
-
-    # backward pass
-    loss = criterion(y, x)
-    loss.backward()
-    optimizer.step()
-
-    # log loss if master_process
-    if master_process:
-        print(f"Epoch={e+1}; Loss={loss:.4f};")
-
-# ddp cleanup
-if ddp:
-    destroy_process_group()
+estimator.fit(wait=False)
