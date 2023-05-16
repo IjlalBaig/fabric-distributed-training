@@ -1,20 +1,56 @@
-# ml-ddp-example
-A toy example to play with Pytorch DDP basics 
+# Fabric Distributed Training
+A toy example to test distributed training configuration using `lightning fabric` and `Amazon Sagemaker`.
 
-## Setup: 
+## Installation 
 ```bash
-conda create -n <env_name> python=3.10
+conda create -n <env_name> python=3.8
 
 conda activate <env_name>
 
-pip install torch==1.12.1+cu113 torchvision==0.13.1+cu113 --extra-index-url https://download.pytorch.org/whl/cu113
+pip install -r requirements.txt
 ```
 
-## Launch Training:
+## Training
+#### Setup Pytorch Estimator
+Set `PyTorch` estimator configuration in train.py. Ensure that the `distribution` argument 
+is set according to the desired training strategy.
+```python 
+# train.py [ddp]
+distribution = {"pytorchddp":  {"enabled": True}}
+```
+or
+```python
+# train.py [fsdp]
+distribution = {"torch_distributed":  {"enabled": True}}
+```
+#### Setup Fabric Instance
+Set `strategy` and `num_nodes` arguments in `Fabric` instance.
+
+```python
+# train_with_lightning_fabric.py [ddp]
+from lightning.fabric.strategies import DDPStrategy
+import lightning as L
+
+ddp_strategy = DDPStrategy()
+fabric = L.Fabric(strategy=ddp_strategy, num_nodes=2, devices="auto")
+```
+or
+```python
+# train_with_lightning_fabric.py [fsdp]
+from torch.distributed.fsdp.wrap import size_based_auto_wrap_policy
+from lightning.fabric.strategies import FSDPStrategy
+import lightning as L
+import functools
+
+my_auto_wrap_policy = functools.partial(
+  size_based_auto_wrap_policy, 
+  min_num_params=20000
+)
+fsdp_strategy = FSDPStrategy(auto_wrap_policy=my_auto_wrap_policy)
+fabric = L.Fabric(strategy=fsdp_strategy, num_nodes=2, devices="auto")
+```
+
+#### Launch Training Job
 ```bash
-# simple run
 python train.py
-
-# distributed run
-torchrun --nnodes=1 --nproc_per_node=<num_procs> train.py
-```
+``` 

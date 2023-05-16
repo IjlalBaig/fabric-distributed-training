@@ -15,13 +15,13 @@ from torch.utils.data import Dataset, DataLoader
 import torch.nn.functional as F
 import os
 
-# Optional: Sagemaker distributed environment setup
+# Optional: cluster environment setup
 env = None
 process_group_backend = None
 try:
     print(f"world_size: ({int(os.environ['WORLD_SIZE'])}), rank: ({int(os.environ['RANK'])})")
-    from lightning.fabric.plugins.environments import LightningEnvironment
 
+    from lightning.fabric.plugins.environments import LightningEnvironment
     env = LightningEnvironment()
     env.world_size = lambda: int(os.environ["WORLD_SIZE"])
     env.global_rank = lambda: int(os.environ["RANK"])
