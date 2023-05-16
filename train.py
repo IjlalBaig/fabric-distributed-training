@@ -14,7 +14,7 @@ estimator = PyTorch(
     output_path="s3://ml-sagemaker-testing/multi-node-testing",
 
     source_dir="./",
-    entry_point="train_with_lightning_fabric.py",
+    entry_point="train_with_lightning_fabric_gp.py",
 
     distribution=model_parallel_config,
 )
