@@ -1,31 +1,8 @@
 import sagemaker
 from sagemaker.pytorch import PyTorch
 
-smp_options = {
-    "enabled": True,
-    "parameters": {                        # Required
-        "partitions": 2,
-        "pipeline_parallel_degree": 2,     # Required
-        "microbatches": 4,
-        "placement_strategy": "spread",
-        "pipeline": "interleaved",
-        "optimize": "speed",
-        "ddp": True,
-    }
-}
-
-mpi_options = {
-    "enabled": True,                      # Required
-    "processes_per_host": 8,              # Required
-    # "custom_mpi_options" : "--mca btl_vader_single_copy_mechanism none"
-}
-model_parallel_config = {
-        "smdistributed": {"modelparallel": smp_options},
-        "mpi": mpi_options
-    },
-
-# todo: use config for smdistributed and mpi for ddp case
 data_parallel_config = {"pytorchddp":  {"enabled": True}}
+model_parallel_config = {"torch_distributed":  {"enabled": True}}
 
 estimator = PyTorch(
     base_job_name="lightening-multinode-test",
@@ -39,7 +16,6 @@ estimator = PyTorch(
     source_dir="./",
     entry_point="train_with_lightning_fabric.py",
 
-    # enabling DDP using MPI
     distribution=model_parallel_config,
 )
 

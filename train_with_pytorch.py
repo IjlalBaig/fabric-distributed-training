@@ -1,17 +1,7 @@
-from model import WGAN_GP, Discriminator, Generator
+from model import Discriminator, Generator
 import torch
-import lightning as L
-
-from torchvision.datasets import CIFAR10
-import torchvision.transforms as T
-
-from lightning.fabric.strategies import FSDPStrategy
-from torch.distributed.fsdp.wrap import size_based_auto_wrap_policy
 from torch.utils.data import Dataset, DataLoader
 import torch.nn.functional as F
-import os
-
-import functools
 
 
 class RandnDataset(Dataset):
@@ -75,7 +65,7 @@ if __name__ == "__main__":
     LR = 1e-4
     CHANNEL_MULTIPLIER = 2
     ADDITIONAL_CONVS = 20
-    DEVICE = "cuda:7"
+    DEVICE = "cuda:0"
 
     # Prepare data
     train_set = RandnDataset(10000)

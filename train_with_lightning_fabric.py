@@ -1,8 +1,13 @@
-from model import WGAN_GP, Discriminator, Generator
+from model import Discriminator, Generator
 import torch
 import lightning as L
 import warnings
+import functools
 
+# Set seed
+from lightning.fabric import seed_everything
+
+seed_everything(999)
 
 from lightning.fabric.strategies import FSDPStrategy, DDPStrategy
 from torch.distributed.fsdp.wrap import size_based_auto_wrap_policy
@@ -10,12 +15,13 @@ from torch.utils.data import Dataset, DataLoader
 import torch.nn.functional as F
 import os
 
-# Sagemaker distributed environment setup
+# Optional: Sagemaker distributed environment setup
 env = None
 process_group_backend = None
 try:
     print(f"world_size: ({int(os.environ['WORLD_SIZE'])}), rank: ({int(os.environ['RANK'])})")
     from lightning.fabric.plugins.environments import LightningEnvironment
+
     env = LightningEnvironment()
     env.world_size = lambda: int(os.environ["WORLD_SIZE"])
     env.global_rank = lambda: int(os.environ["RANK"])
@@ -24,6 +30,7 @@ except ModuleNotFoundError as e:
     warnings.warn(e.msg)
 
 
+# Define Dataset
 class RandnDataset(Dataset):
     def __init__(self, num_samples=10000):
         super().__init__()
@@ -74,9 +81,6 @@ def generator_step(gen, disc, optimizer_gen, noise, fabric):
 
 
 if __name__ == "__main__":
-    # Set seed
-    from lightning.fabric import seed_everything
-    seed_everything(999)
 
     # Define hyper-parameters
     BATCH_SIZE = 8
@@ -87,20 +91,19 @@ if __name__ == "__main__":
     ADDITIONAL_CONVS = 20
 
     # Setup fabric instance
-    import functools
     my_auto_wrap_policy = functools.partial(
         size_based_auto_wrap_policy, min_num_params=20000
     )
     fsdp_strategy = FSDPStrategy(
         auto_wrap_policy=my_auto_wrap_policy,
-        cluster_environment=env,
-        process_group_backend=process_group_backend,
+        # cluster_environment=env,
+        # process_group_backend=process_group_backend,
     )
     ddp_strategy = DDPStrategy(
-        cluster_environment=env,
-        process_group_backend=process_group_backend,
+        # cluster_environment=env,
+        # process_group_backend=process_group_backend,
     )
-#     strategy = "auto"
+    #     strategy = "auto"
 
     fabric = L.Fabric(strategy=fsdp_strategy, num_nodes=2, devices="auto")
     fabric.launch()
@@ -113,13 +116,13 @@ if __name__ == "__main__":
     # Setup modules and optimizers
     gen = Generator(CHANNEL_MULTIPLIER, ADDITIONAL_CONVS)
     disc = Discriminator(CHANNEL_MULTIPLIER, ADDITIONAL_CONVS)
-    
+
     gen = fabric.setup_module(gen)
     disc = fabric.setup_module(disc)
 
     optimizer_gen = torch.optim.Adam(gen.parameters(), lr=LR)
     optimizer_disc = torch.optim.Adam(disc.parameters(), lr=LR)
-    
+
     optimizer_gen, optimizer_disc = fabric.setup_optimizers(optimizer_gen, optimizer_disc)
 
     # Training loop
