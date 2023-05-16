@@ -12,7 +12,7 @@ pip install -r requirements.txt
 
 ## Training
 #### Setup Pytorch Estimator
-Set `PyTorch` estimator configuration in train.py. Ensure that the `distribution` argument 
+Set `PyTorch` estimator configuration. Ensure that the `distribution` argument 
 is set according to the desired training strategy.
 ```python 
 # train.py [ddp]
